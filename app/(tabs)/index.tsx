@@ -1,98 +1,300 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { ChatBubble, Message } from '@/components/ChatBubble';
+import { MicButton } from '@/components/MicButton';
+import { TypingIndicator } from '@/components/TypingIndicator';
+import { Colors, Radius, Spacing } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+  FlatList, KeyboardAvoidingView, Platform, SafeAreaView,
+  StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View
+} from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Audio } from 'expo-av';
 
-export default function HomeScreen() {
+const LANGUAGES = ['Auto', 'Hindi', 'Bengali', 'Tamil', 'Telugu', 'Marathi', 'Gujarati', 'English'];
+
+const AI_RESPONSES = [
+  "नमस्ते! मैं BharatAI हूँ। मैं आपकी कैसे मदद कर सकता हूँ? 🙏",
+  "I can understand and respond in Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, and many more Indian languages!",
+  "यह एक बहुत अच्छा सवाल है। मुझे बताइए कि आप किस विषय में जानकारी चाहते हैं।",
+  "That's interesting! As your multilingual AI assistant, I'm here to help you with anything you need.",
+  "आप मुझसे किसी भी भारतीय भाषा में बात कर सकते हैं — मैं सब समझता हूँ! 😊",
+];
+
+let msgId = 1;
+
+export default function ChatScreen() {
+  const colorScheme = useColorScheme() ?? 'dark';
+  const colors = Colors[colorScheme];
+  const { user } = useAuth();
+
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: String(msgId++),
+      role: 'assistant',
+      content: `नमस्ते ${user?.name?.split(' ')[0] ?? ''}! 🙏 I'm BharatAI — your intelligent assistant in every Indian language. Ask me anything! आप हिंदी, बங்காली, तमिल, या किसी भी भाषा में बात कर सकते हैं।`,
+      timestamp: new Date(),
+    },
+  ]);
+  const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [permissionResponse, requestPermission] = Audio.usePermissions();
+  const [selectedLang, setSelectedLang] = useState('Auto');
+  const [showLangPicker, setShowLangPicker] = useState(false);
+
+  const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    setInputText('');
+
+    const userMsg: Message = {
+      id: String(msgId++),
+      role: 'user',
+      content: text.trim(),
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setIsTyping(true);
+
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+    // Simulate API delay
+    await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
+
+    const aiMsg: Message = {
+      id: String(msgId++),
+      role: 'assistant',
+      content: AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)],
+      timestamp: new Date(),
+    };
+
+    setIsTyping(false);
+    setMessages((prev) => [...prev, aiMsg]);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+  }, []);
+
+  const handleMicPressIn = async () => {
+    try {
+      if (permissionResponse?.status !== 'granted') {
+        console.log('Requesting permission..');
+        const resp = await requestPermission();
+        if (resp.status !== 'granted') return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      console.log('Starting recording..');
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(recording);
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+    }
+  };
+
+  const handleMicPressOut = async () => {
+    if (!recording) return;
+
+    setIsRecording(false);
+    setRecording(null);
+    console.log('Stopping recording..');
+
+    try {
+      await recording.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
+      const uri = recording.getURI();
+      console.log('Recording stopped and stored at', uri);
+
+      // Now we have the real audio file at 'uri'
+      // To perform real STT, you would send this file to an API (e.g. OpenAI Whisper)
+      // For now, we continue to simulate the transcription:
+      const phrases = [
+        'नमस्ते, आज का मौसम कैसा है?',
+        'India ki rajdhani kya hai?',
+        'Tell me a joke in Hindi',
+        'Bengali mein translate karo',
+      ];
+      const transcribed = phrases[Math.floor(Math.random() * phrases.length)];
+      sendMessage(`[Voice Input] ${transcribed}`);
+    } catch (err) {
+      console.error('Failed to stop recording', err);
+    }
+  };
+
+  const initials = user?.name
+    ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+    : 'U';
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+        <View style={styles.headerLeft}>
+          <View style={[styles.aiBadge, { backgroundColor: colors.tint }]}>
+            <Ionicons name="chatbubbles" size={18} color="#fff" />
+          </View>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>BharatAI</Text>
+            <View style={styles.onlineRow}>
+              <View style={[styles.onlineDot, { backgroundColor: colors.success }]} />
+              <Text style={[styles.headerSub, { color: colors.subtext }]}>Online · Multilingual</Text>
+            </View>
+          </View>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Language selector */}
+        <TouchableOpacity
+          style={[styles.langBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+          onPress={() => setShowLangPicker(!showLangPicker)}>
+          <Ionicons name="language" size={14} color={colors.tint} />
+          <Text style={[styles.langBtnText, { color: colors.tint }]}>{selectedLang}</Text>
+          <Ionicons name="chevron-down" size={12} color={colors.tint} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Language picker dropdown */}
+      {showLangPicker && (
+        <View style={[styles.langDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {LANGUAGES.map((lang) => (
+            <TouchableOpacity
+              key={lang}
+              style={[styles.langOption, selectedLang === lang && { backgroundColor: colors.tint + '22' }]}
+              onPress={() => { setSelectedLang(lang); setShowLangPicker(false); }}>
+              <Text style={[styles.langOptionText, { color: selectedLang === lang ? colors.tint : colors.text }]}>
+                {lang}
+              </Text>
+              {selectedLang === lang && <Ionicons name="checkmark" size={14} color={colors.tint} />}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Messages */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={90}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <ChatBubble message={item} />}
+          ListFooterComponent={isTyping ? <TypingIndicator /> : null}
+          contentContainerStyle={styles.messagesList}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          showsVerticalScrollIndicator={false}
+        />
+
+        {/* Input Bar */}
+        <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+          {isRecording ? (
+            <View style={[styles.recordingBar, { backgroundColor: colors.danger + '18', borderColor: colors.danger }]}>
+              <View style={[styles.recordingDot, { backgroundColor: colors.danger }]} />
+              <Text style={[styles.recordingText, { color: colors.danger }]}>
+                Listening… Release to send
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.textInputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+              <TextInput
+                ref={inputRef}
+                style={[styles.textInput, { color: colors.text }]}
+                placeholder="Message BharatAI…"
+                placeholderTextColor={colors.subtext}
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+                maxLength={2000}
+                onSubmitEditing={() => sendMessage(inputText)}
+              />
+              {inputText.trim().length > 0 && (
+                <TouchableOpacity
+                  style={[styles.sendBtn, { backgroundColor: colors.tint }]}
+                  onPress={() => sendMessage(inputText)}>
+                  <Ionicons name="send" size={16} color="#fff" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          <MicButton
+            isRecording={isRecording}
+            onPressIn={handleMicPressIn}
+            onPressOut={handleMicPressOut}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  root: { flex: 1 },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 4,
+    borderBottomWidth: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  aiBadge: {
+    width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  headerTitle: { fontSize: 17, fontWeight: '700' },
+  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  onlineDot: { width: 6, height: 6, borderRadius: 3 },
+  headerSub: { fontSize: 12 },
+  langBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: Radius.full, borderWidth: 1,
   },
+  langBtnText: { fontSize: 12, fontWeight: '600' },
+  langDropdown: {
+    position: 'absolute', top: 72, right: Spacing.md, zIndex: 100,
+    borderRadius: Radius.md, borderWidth: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 8,
+    overflow: 'hidden', minWidth: 140,
+  },
+  langOption: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 10,
+  },
+  langOptionText: { fontSize: 14 },
+  messagesList: { paddingTop: Spacing.md, paddingBottom: Spacing.md },
+  inputBar: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2,
+    borderTopWidth: 1,
+  },
+  textInputWrapper: {
+    flex: 1, flexDirection: 'row', alignItems: 'flex-end',
+    borderRadius: Radius.xl, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 8, minHeight: 48, maxHeight: 120,
+  },
+  textInput: { flex: 1, fontSize: 15, paddingTop: 2, paddingBottom: 2 },
+  sendBtn: {
+    width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginLeft: 8,
+  },
+  recordingBar: {
+    flex: 1, height: 48, borderRadius: Radius.xl, borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 10,
+  },
+  recordingDot: { width: 8, height: 8, borderRadius: 4 },
+  recordingText: { fontSize: 14, fontWeight: '500' },
 });
