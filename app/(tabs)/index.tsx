@@ -13,6 +13,7 @@ import {
   View
 } from 'react-native';
 
+import { transcribeAudio } from '@/services/sarvamService';
 import { Audio } from 'expo-av';
 
 const LANGUAGES = ['Auto', 'Hindi', 'Bengali', 'Tamil', 'Telugu', 'Marathi', 'Gujarati', 'English'];
@@ -43,6 +44,7 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
   const [selectedLang, setSelectedLang] = useState('Auto');
@@ -50,6 +52,9 @@ export default function ChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const isPreparingRef = useRef(false);
+  const isPressedRef = useRef(false);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
@@ -83,57 +88,113 @@ export default function ChatScreen() {
   }, []);
 
   const handleMicPressIn = async () => {
+    if (isPreparingRef.current || recordingRef.current) return;
+    isPressedRef.current = true;
+
     try {
       if (permissionResponse?.status !== 'granted') {
-        console.log('Requesting permission..');
         const resp = await requestPermission();
-        if (resp.status !== 'granted') return;
+        if (resp.status !== 'granted') {
+          isPressedRef.current = false;
+          return;
+        }
       }
+
+      isPreparingRef.current = true;
+      setIsRecording(true);
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
 
-      console.log('Starting recording..');
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
-      setRecording(recording);
-      setIsRecording(true);
+
+      recordingRef.current = recording;
+      isPreparingRef.current = false;
+
+      // If user already released while we were preparing
+      if (!isPressedRef.current) {
+        console.log('User released before recording was ready, cleaning up...');
+        stopAndCleanupRecording();
+      }
     } catch (err) {
+      isPreparingRef.current = false;
+      setIsRecording(false);
+      isPressedRef.current = false;
       console.error('Failed to start recording', err);
     }
   };
 
-  const handleMicPressOut = async () => {
-    if (!recording) return;
-
+  const stopAndCleanupRecording = async () => {
+    const rec = recordingRef.current;
+    recordingRef.current = null;
+    if (rec) {
+      try {
+        await rec.stopAndUnloadAsync();
+      } catch (e) {
+        console.warn('Silent failure on stopAndUnload:', e);
+      }
+    }
+    await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
     setIsRecording(false);
-    setRecording(null);
+  };
+
+  const handleMicPressOut = async () => {
+    isPressedRef.current = false;
+    setIsRecording(false);
+
+    // Wait if it's still preparing
+    if (isPreparingRef.current) {
+      return; // handleMicPressIn will catch the release via isPressedRef
+    }
+
+    const rec = recordingRef.current;
+    if (!rec) return;
+
+    recordingRef.current = null;
     console.log('Stopping recording..');
 
     try {
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-      });
-      const uri = recording.getURI();
+      setIsTranscribing(true);
+
+      // Check if recording is actually prepared/recording
+      const status = await rec.getStatusAsync();
+      if (!status.canRecord || status.durationMillis < 200) {
+        console.warn('Recording too short or not ready');
+        await rec.stopAndUnloadAsync();
+        setIsTranscribing(false);
+        return;
+      }
+
+      await rec.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+
+      const uri = rec.getURI();
       console.log('Recording stopped and stored at', uri);
 
-      // Now we have the real audio file at 'uri'
-      // To perform real STT, you would send this file to an API (e.g. OpenAI Whisper)
-      // For now, we continue to simulate the transcription:
-      const phrases = [
-        'नमस्ते, आज का मौसम कैसा है?',
-        'India ki rajdhani kya hai?',
-        'Tell me a joke in Hindi',
-        'Bengali mein translate karo',
-      ];
-      const transcribed = phrases[Math.floor(Math.random() * phrases.length)];
-      sendMessage(`[Voice Input] ${transcribed}`);
-    } catch (err) {
+      if (uri) {
+        const result = await transcribeAudio(uri);
+        setIsTranscribing(false);
+
+        if (result?.transcript) {
+          sendMessage(result.transcript);
+        } else {
+          const errorMsg = !process.env.EXPO_PUBLIC_SARVAM_API_KEY
+            ? 'API Key Missing in .env (Check EXPO_PUBLIC_SARVAM_API_KEY)'
+            : 'Sarvam API Error (Check API logs)';
+          console.warn('Transcription failed:', errorMsg);
+          sendMessage(`[Error] ${errorMsg}`);
+        }
+      }
+    } catch (err: any) {
+      setIsTranscribing(false);
       console.error('Failed to stop recording', err);
+      if (err.message?.includes('no valid audio data')) {
+        sendMessage('[Error] Recording was too short. Please hold the button longer.');
+      }
     }
   };
 
@@ -208,6 +269,13 @@ export default function ChatScreen() {
               <View style={[styles.recordingDot, { backgroundColor: colors.danger }]} />
               <Text style={[styles.recordingText, { color: colors.danger }]}>
                 Listening… Release to send
+              </Text>
+            </View>
+          ) : isTranscribing ? (
+            <View style={[styles.recordingBar, { backgroundColor: colors.tint + '18', borderColor: colors.tint }]}>
+              <View style={[styles.recordingDot, { backgroundColor: colors.tint }]} />
+              <Text style={[styles.recordingText, { color: colors.tint }]}>
+                Transcribing Audio...
               </Text>
             </View>
           ) : (
