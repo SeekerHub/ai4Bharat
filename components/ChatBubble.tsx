@@ -60,8 +60,8 @@ export function ChatBubble({ message }: Props) {
 const styles = StyleSheet.create({
     wrapper: {
         flexDirection: 'row',
-        marginVertical: 6,
-        paddingHorizontal: 12,
+        marginVertical: 4,
+        paddingHorizontal: 16, // Increased horizontal padding
         alignItems: 'flex-end',
     },
     userWrapper: {
@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 8,
-        marginBottom: 18,
+        marginRight: 10,
+        marginBottom: 16,
     },
     avatarText: {
         color: '#FFFFFF',
@@ -85,26 +85,27 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     bubbleColumn: {
-        maxWidth: '75%',
+        maxWidth: '82%', // Slightly more width
     },
     bubble: {
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 20,
+        paddingVertical: 10,
+        borderRadius: 18,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 1,
     },
     text: {
-        fontSize: 15,
-        lineHeight: 22,
+        fontSize: 16,
+        lineHeight: 24,
     },
     time: {
-        fontSize: 11,
-        marginTop: 4,
-        marginHorizontal: 4,
+        fontSize: 10,
+        marginTop: 2,
+        marginHorizontal: 8,
         alignSelf: 'flex-end',
+        opacity: 0.6,
     },
 });

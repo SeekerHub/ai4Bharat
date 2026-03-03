@@ -7,11 +7,12 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useRef, useState } from 'react';
 import {
-  FlatList, KeyboardAvoidingView, Platform, SafeAreaView,
+  FlatList, KeyboardAvoidingView, Platform,
   StyleSheet,
   Text, TextInput, TouchableOpacity,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { transcribeAudio } from '@/services/sarvamService';
 import { Audio } from 'expo-av';
@@ -31,6 +32,7 @@ let msgId = 1;
 export default function ChatScreen() {
   const colorScheme = useColorScheme() ?? 'dark';
   const colors = Colors[colorScheme];
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
   const [messages, setMessages] = useState<Message[]>([
@@ -203,9 +205,16 @@ export default function ChatScreen() {
     : 'U';
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+      <View style={[
+        styles.header,
+        {
+          borderBottomColor: colors.border,
+          backgroundColor: colors.background,
+          paddingTop: insets.top + (Platform.OS === 'ios' ? 0 : 10),
+        }
+      ]}>
         <View style={styles.headerLeft}>
           <View style={[styles.aiBadge, { backgroundColor: colors.tint }]}>
             <Ionicons name="chatbubbles" size={18} color="#fff" />
@@ -257,13 +266,20 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <ChatBubble message={item} />}
           ListFooterComponent={isTyping ? <TypingIndicator /> : null}
-          contentContainerStyle={styles.messagesList}
+          contentContainerStyle={[styles.messagesList, { paddingBottom: Spacing.md }]}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
         />
 
         {/* Input Bar */}
-        <View style={[styles.inputBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        <View style={[
+          styles.inputBar,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            paddingBottom: Math.max(insets.bottom, Spacing.md),
+          }
+        ]}>
           {isRecording ? (
             <View style={[styles.recordingBar, { backgroundColor: colors.danger + '18', borderColor: colors.danger }]}>
               <View style={[styles.recordingDot, { backgroundColor: colors.danger }]} />
@@ -307,7 +323,7 @@ export default function ChatScreen() {
           />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

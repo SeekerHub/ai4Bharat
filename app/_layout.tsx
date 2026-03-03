@@ -4,6 +4,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootNavigator() {
   return (
@@ -25,8 +26,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <RootNavigator />
-        <StatusBar style="auto" />
+        <SafeAreaProvider>
+          <RootNavigator />
+          <StatusBar style="auto" />
+        </SafeAreaProvider>
       </AuthProvider>
     </ThemeProvider>
   );
