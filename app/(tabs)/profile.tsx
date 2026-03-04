@@ -41,7 +41,7 @@ export default function ProfileScreen() {
         { icon: 'notifications-outline', label: 'Notifications', value: 'On' },
         { icon: 'shield-checkmark-outline', label: 'Privacy & Data' },
         { icon: 'help-circle-outline', label: 'Help & Support' },
-        { icon: 'information-circle-outline', label: 'About BharatAI', value: 'v1.0.0' },
+        { icon: 'information-circle-outline', label: 'About GramSarthiAI', value: 'v1.0.0' },
     ];
 
     const SettingItem = ({ icon, label, value, onPress, isDestructive }: SettingRow) => (

@@ -27,7 +27,7 @@ export function TypingIndicator() {
         const a3 = animate(dot3, 400);
         a1.start(); a2.start(); a3.start();
         return () => { a1.stop(); a2.stop(); a3.stop(); };
-    }, []);
+    }, [dot1, dot2, dot3]);
 
     return (
         <View style={[styles.wrapper, { paddingHorizontal: 12 }]}>

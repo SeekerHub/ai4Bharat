@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -64,7 +65,13 @@ export default function HistoryScreen() {
         ListHeaderComponent={
           <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
             <Ionicons name="search" size={18} color={colors.subtext} />
-            <Text style={[styles.searchPlaceholder, { color: colors.subtext }]}>Search conversations…</Text>
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search conversations…"
+              placeholderTextColor={colors.subtext}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
           </View>
         }
         renderItem={({ item }) => (
@@ -116,7 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md, borderWidth: 1,
     paddingHorizontal: Spacing.md, height: 44, marginBottom: Spacing.sm,
   },
-  searchPlaceholder: { fontSize: 14 },
+  searchInput: { flex: 1, fontSize: 14, height: '100%' },
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     borderRadius: Radius.md, borderWidth: 1,

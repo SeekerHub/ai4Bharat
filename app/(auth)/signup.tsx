@@ -39,7 +39,7 @@ export default function SignupScreen() {
             Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
             Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
         ]).start();
-    }, []);
+    }, [fadeAnim, slideAnim]);
 
     const pickDocument = async (type: DocType) => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -128,7 +128,7 @@ export default function SignupScreen() {
                         </View>
                         <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
                         <Text style={[styles.subtitle, { color: colors.subtext }]}>
-                            Join BharatAI — your multilingual AI companion
+                            Join GramSarthiAI — your multilingual AI companion
                         </Text>
                     </View>
 

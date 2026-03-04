@@ -35,7 +35,7 @@ export default function LoginScreen() {
             Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
             Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
         ]).start();
-    }, []);
+    }, [fadeAnim, slideAnim]);
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -60,7 +60,7 @@ export default function LoginScreen() {
                     <View style={[styles.logoCircle, { backgroundColor: colors.tint }]}>
                         <Ionicons name="chatbubbles" size={40} color="#fff" />
                     </View>
-                    <Text style={[styles.appName, { color: colors.text }]}>BharatAI</Text>
+                    <Text style={[styles.appName, { color: colors.text }]}>GramSarthiAI</Text>
                     <Text style={[styles.tagline, { color: colors.subtext }]}>
                         Your intelligent assistant in every Indian language
                     </Text>
@@ -134,7 +134,7 @@ export default function LoginScreen() {
                     </TouchableOpacity>
 
                     <View style={styles.signupRow}>
-                        <Text style={[styles.signupText, { color: colors.subtext }]}>Don't have an account? </Text>
+                        <Text style={[styles.signupText, { color: colors.subtext }]}>Don{"'"}t have an account? </Text>
                         <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
                             <Text style={[styles.signupLink, { color: colors.tint }]}>Sign Up</Text>
                         </TouchableOpacity>

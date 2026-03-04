@@ -20,7 +20,7 @@ import { Audio } from 'expo-av';
 const LANGUAGES = ['Auto', 'Hindi', 'Bengali', 'Tamil', 'Telugu', 'Marathi', 'Gujarati', 'English'];
 
 const AI_RESPONSES = [
-  "नमस्ते! मैं BharatAI हूँ। मैं आपकी कैसे मदद कर सकता हूँ? 🙏",
+  "नमस्ते! मैं GramSarthiAI हूँ। मैं आपकी कैसे मदद कर सकता हूँ? 🙏",
   "I can understand and respond in Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, and many more Indian languages!",
   "यह एक बहुत अच्छा सवाल है। मुझे बताइए कि आप किस विषय में जानकारी चाहते हैं।",
   "That's interesting! As your multilingual AI assistant, I'm here to help you with anything you need.",
@@ -39,7 +39,7 @@ export default function ChatScreen() {
     {
       id: String(msgId++),
       role: 'assistant',
-      content: `नमस्ते ${user?.name?.split(' ')[0] ?? ''}! 🙏 I'm BharatAI — your intelligent assistant in every Indian language. Ask me anything! आप हिंदी, बங்காली, तमिल, या किसी भी भाषा में बात कर सकते हैं।`,
+      content: `नमस्ते ${user?.name?.split(' ')[0] ?? ''}! 🙏 I'm GramSarthiAI — your intelligent assistant in every Indian language. Ask me anything! आप हिंदी, बங்காली, तमिल, या किसी भी भाषा में बात कर सकते हैं।`,
       timestamp: new Date(),
     },
   ]);
@@ -47,7 +47,6 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
   const [selectedLang, setSelectedLang] = useState('Auto');
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -200,9 +199,7 @@ export default function ChatScreen() {
     }
   };
 
-  const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
-    : 'U';
+
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -220,7 +217,7 @@ export default function ChatScreen() {
             <Ionicons name="chatbubbles" size={18} color="#fff" />
           </View>
           <View>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>BharatAI</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>GramSarthiAI</Text>
             <View style={styles.onlineRow}>
               <View style={[styles.onlineDot, { backgroundColor: colors.success }]} />
               <Text style={[styles.headerSub, { color: colors.subtext }]}>Online · Multilingual</Text>
@@ -299,7 +296,7 @@ export default function ChatScreen() {
               <TextInput
                 ref={inputRef}
                 style={[styles.textInput, { color: colors.text }]}
-                placeholder="Message BharatAI…"
+                placeholder="Message GramSarthiAI…"
                 placeholderTextColor={colors.subtext}
                 value={inputText}
                 onChangeText={setInputText}

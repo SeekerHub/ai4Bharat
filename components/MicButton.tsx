@@ -32,7 +32,7 @@ export function MicButton({ isRecording, onPressIn, onPressOut }: Props) {
             pulse.stopAnimation();
             Animated.timing(pulse, { toValue: 1, duration: 200, useNativeDriver: true }).start();
         }
-    }, [isRecording]);
+    }, [isRecording, pulse]);
 
     return (
         <View style={styles.container}>
